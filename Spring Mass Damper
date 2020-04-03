@@ -1,0 +1,92 @@
+function SpringMassDamper()
+clc
+close all
+
+disp('Spring Mass Damper Program')
+
+State = [1;2];%INITIAL POSITION AND VELOCITY
+
+StateDot = Derivatives(State,0);
+
+tfinal = 10;
+tinitial = 0;
+timestep = 0.1;
+time = tinitial:timestep:tfinal;
+
+StateOUT = zeros(2,length(time));
+ucontrol = zeros(length(time),1);
+
+for idx = 1:length(time)
+    StateOUT(:,idx) = State;
+    
+    u1 = Control(State,time(idx));
+    k1 = Derivatives(State,u1);
+    
+    u2 = Control(State+k1*timestep/2,time(idx)+timestep/2);
+    k2 = Derivatives(State+k1*timestep/2,u2);
+    
+    u3 = Control(State+k2*timestep/2,time(idx)+timestep/2);
+    k3 = Derivatives(State+k2*timestep/2,u3);
+    
+    u4 = Control(State+k3*timestep/2,time(idx)+timestep/2);
+    k4 = Derivatives(State+k3*timestep/2,u4);
+    
+    phi = (1/6)*(k1 + 2*k2 + 2*k3 + k4);
+    
+    State = State + phi*timestep;
+    ucontrol(idx) = u1;
+end
+
+fig = figure();
+set(fig,'color','white');
+plot(time,ucontrol,'b-','LineWidth',2)
+set(gca, 'FontSize' ,18)
+xlabel('Time(sec)')
+ylabel('Force of Control(N)')
+grid on
+
+position = StateOUT(1,:);
+velocity = StateOUT(2,:);
+errorpostion = StateOUT(3,:);
+
+fig = figure();
+set(fig,'color','white');
+plot(time,position,'b-','LineWidth',2)
+set(gca, 'FontSize' ,18)
+xlabel('Time(sec)')
+ylabel('Position(m)')
+grid on
+
+
+fig = figure();
+set(fig,'color','white');
+plot(time,velocity,'b-','LineWidth',2)
+set(gca, 'FontSize' ,18)
+xlabel('Time(sec)')
+ylabel('Velocity(m/s)')
+grid on
+    
+function StateDot = Derivatives(State,ucontrol)
+m=1;
+c=0.5;
+k=1;
+A = [0 1;-k/m -c/m];
+B = [0;1/m];
+
+StateDot = A*State + B*ucontrol;
+
+function ucontrol = Control(State,t)
+kp = 1;
+kd = 1;
+
+xcommand = 0;%want to go
+xdotcommand = 0;%how fast to go
+errorcommand = 0;
+ucontrol = 0;
+%State(1)=Position
+%State(2)=Velocity
+if t>5
+    ucontrol = -kp*(State(1)-xcommand) - kd*(State(2)-xdotcommand);
+end
+
+    
